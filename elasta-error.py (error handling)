@@ -1,0 +1,55 @@
+import csv
+import os
+import shutil
+import subprocess
+import sys
+import re
+from datetime import date
+
+##RECUPERATION DU NOMDU FICHIER
+a= sys.argv[1]
+#print(a)
+a=str(a)
+
+### DEPLACEMENT DU FICHIER DANS LE SAS DE TRAITEMENT
+a1='/home/elastic/Terrena_backup/'+a
+a2='/home/elastic/Licence/'+a
+a1=a1.replace('"', '')
+#print(a1)
+a2=a2.replace('"', '')
+#print(a2)
+shutil.copyfile(a1,a2)
+
+###SUPPRESSION DU FICHIER DU DOSSIER D ARCHIVE
+#os.remove(a1)
+
+###ON RECUPERE LA DATE A LAQUELLE INSERER LES DONNEES DU FICHIER
+b= sys.argv[2]
+b=b.replace('"', '')
+print(b)
+##ON AJOUTE LA DATE DANS LE FICHIER
+text=open(a2,'r')
+with open(a2,'r') as csv_file:
+        csv_reader=csv.reader(csv_file)
+        for line in csv_reader:
+                print('')
+        text = ''.join([i for i in text])
+text = text.replace('No,','No,'+b)
+text = text.replace('GB,','GB,'+b)
+x=open("/home/elastic/csv/Terrena_VM-"+b+".csv","w")
+x.writelines(text)
+print('Transformation of CSV file completed')
+x.close()
+
+###ARCHIVAGE DU FICHIER TRANSFORME
+#shutil.copyfile("/home/elastic/csv/Terrena_VM-"+b+".csv","/home/elastic/Terrena_backup/Terrena_VM-"+b+".csv")
+
+
+###INSERTION DES DONNEES DANS ELASTIC
+return_code = subprocess.call("/home/elastic/integration_elastic.sh")
+print("Ingestion of data completed")
+
+
+###SUPPRESSION DU FICHIER DANS Licence ET DU FICHIER TRANSFORME DANS csv/Licence
+os.remove(a2)
+os.remove('/home/elastic/csv/Terrena_VM-'+b+'.csv')
