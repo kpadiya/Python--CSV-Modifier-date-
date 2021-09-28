@@ -1,0 +1,121 @@
+import csv
+import webbrowser
+import tkinter as tk
+import paramiko
+import subprocess
+import sys
+import paramiko
+import os
+from paramiko import SSHClient
+from tkinter import *
+from tkinter.ttk import *
+from tkinter import ttk
+from tkinter import simpledialog
+from tkinter import messagebox as mb
+from tkinter import filedialog as fd
+from tkinter.filedialog import asksaveasfile
+from tkinter.messagebox import showinfo
+
+
+
+
+# create the root window
+root = tk.Tk()
+root.config(bg='white')
+root.title('ETL - Extract, Transform and Load')
+root.resizable(False, False)
+root.geometry('375x210')
+img = PhotoImage(file="icon.png")
+label = Label(root,image=img)
+label.place(x=0, y=0)
+
+def select_file():
+    filetypes = (('csv files', '*.csv'),('All files', '*.*'))
+    filename = fd.askopenfilename(title='Upload CSV file',initialdir='/',filetypes=filetypes)
+    while(filename==''):
+        showinfo(message='Please select CSV file')
+        filetypes = (('csv files', '*.csv'),('All files', '*.*'))
+        filename = fd.askopenfilename(title='Upload CSV file',initialdir='/',filetypes=filetypes)    
+    text=open(filename,'r')
+    with open(filename,'r') as csv_file:
+        csv_reader=csv.reader(csv_file)
+        for line in csv_reader:
+            print('-', end='')
+        text = ''.join([i for i in text])      
+    showinfo(message='File Uploaded Successfully')
+    date=simpledialog.askstring(title='Search',prompt='Enter the Date (YYYY-MM-DD)')
+    text = text.replace('No,','No,'+ date)
+    text = text.replace('GB,','GB,'+ date)
+    x=open('Terrena/Terrena_VM-'+ date+'.csv','w')
+    x.writelines(text)
+    x.close()
+    showinfo(title='Your File is saved')
+
+def ftp_connection():
+    subprocess.Popen(['C:\Program Files (x86)\WinSCP\WinSCP.exe'])
+    showinfo(message='Nom d'+'hote - 10.4.107.141 Nom d'+'utilisateur - elastic & Mot de passe - elastic01!')
+    
+def load():
+   host = 'svp2-elasta-001'
+   port = 22
+   username = 'elastic'
+   password = 'elastic01!'   
+   bash='bash ./cmd.sh'
+   date=simpledialog.askstring(title='Import le fichier',prompt='Quel fichier vous voulez import? Date (YYYY-MM-DD)')
+   cmd="cp Terrena_VM-"+date+".csv csv/Terrena_VM-"+date+".csv"
+   cmd_rm="rm csv/Terrena_VM-"+date+".csv"
+   ssh = paramiko.SSHClient()
+   ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+   ssh.connect(host, port, username, password)
+   stdin, stdout, stderr =ssh.exec_command(cmd+'\n'+bash+'\n'+cmd_rm)
+   stdin.write("elastic01!")
+   stdin.write("\n")
+   stdin.flush()
+   err = stderr.read().decode()
+   if err:
+       print(err)
+   ssh.close()
+   showinfo(message="Le fichier a Importé sur l'elasticsearch") 
+   
+   
+def donothing():
+   x=0
+
+def do_VM():
+   url ='http://10.4.107.141:5601/goto/7a149854d1f8dc259fdec208bc16196a'
+   webbrowser.open_new(url)
+
+def do_Client():
+   url ='http://10.4.107.141:5601/goto/3c32704c083ad91cce462405b891408e'
+   webbrowser.open_new(url)
+
+
+
+def exit():
+    root.destroy()
+
+# Menu Bar
+menubar = Menu(root)
+filemenu = Menu(menubar, tearoff=0)
+filemenu.add_command(label="Modifier", command=select_file)
+filemenu.add_command(label="Ouvrir winSCP", command=ftp_connection)
+#filemenu.add_command(label="SSh Connection", command=ssh_connection)
+filemenu.add_command(label="Import", command=load)
+filemenu.add_separator()
+filemenu.add_command(label="Sortie", command=exit)
+menubar.add_cascade(label="File", menu=filemenu)
+
+dashmenu = Menu(menubar, tearoff=0)
+dashmenu.add_command(label="VM", command=do_VM)
+dashmenu.add_command(label="Client", command=do_Client)
+#dashmenu.add_command(label="Alerte", command=do_alert)
+menubar.add_cascade(label="Tableau de bord", menu=dashmenu)
+
+helpmenu = Menu(menubar, tearoff=0)
+helpmenu.add_command(label="Help Index", command=donothing)
+helpmenu.add_command(label="About...", command=donothing)
+menubar.add_cascade(label="Help", menu=helpmenu)
+
+root.config(menu=menubar)
+# run the application
+root.mainloop()
